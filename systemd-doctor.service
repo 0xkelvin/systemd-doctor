@@ -1,0 +1,12 @@
+[Unit]
+Description=Doctor Viet - Health Monitoring Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/systemd-doctor --config=/path/to/config.toml
+WatchdogSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

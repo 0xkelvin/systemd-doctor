@@ -8,7 +8,7 @@ Additionally, _**Systemd-doctor**_ stores metrics in a _time-series database_, a
 _**Systemd-doctor**_ service is able to reset itself by _**Systemd Watchdog**_
 
 # Features
-- Monitors CPU load, memory usage, disk space, and service status of "services"
+- Monitors CPU load, memory usage, disk space, and service status of "services"...
 - Tracks global metrics like CPU temperature, board temperature, and network bandwidth...
 - Automatically restarts services if thresholds are breached.
 - Validates if the services specified for tracking are valid systemd services.

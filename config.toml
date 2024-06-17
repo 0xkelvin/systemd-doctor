@@ -1,0 +1,27 @@
+# [services]
+# list = ["ota", "mqtt-client", "can-parser", "logging"]
+
+# [thresholds.ota]
+# cpu = 80.0
+# memory = 70.0
+# disk = 90
+
+# [thresholds.mqtt-client]
+# cpu = 60.0
+# memory = 50.0
+# disk = 85
+
+# [thresholds.can-parser]
+# cpu = 75.0
+# memory = 65.0
+# disk = 88
+
+# [thresholds.logging]
+# cpu = 70.0
+# memory = 60.0
+# disk = 85
+
+# [global_thresholds]
+# cpu_temperature = 80.0
+# board_temperature = 70.0
+# network_bandwidth = 1000.0 
