@@ -1,2 +1,6 @@
 systemd-doctor/Cargo.lock
 systemd-doctor/target
+service_test_1/Cargo.lock
+service_test_1/target
+service_test_2/Cargo.lock
+service_test_2/target
