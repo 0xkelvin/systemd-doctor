@@ -28,7 +28,19 @@ pub struct GlobalThresholds {
     pub disk: Option<f32>,
 }
 
-pub fn load_config(config_path: &str) -> Config {
-    let config_str = fs::read_to_string(config_path).expect("Failed to read config file");
-    toml::from_str(&config_str).expect("Failed to parse config file")
+pub struct ConfigParser {
+    config: Config,
+}
+
+
+impl ConfigParser {
+    pub fn new(config_path: &str) -> Self {
+        let config_contents = fs::read_to_string(config_path).expect("Failed to read config file");
+        let config: Config = toml::from_str(&config_contents).expect("Failed to parse config file");
+        ConfigParser { config }
+    }
+
+    pub fn get_config(&self) -> &Config {
+        &self.config
+    }
 }
