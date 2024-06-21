@@ -45,7 +45,7 @@ impl HealthCheck {
 
 #[cfg(test)]
 mod tests {
-    use crate::health_check::HealthCheck;
+    use crate::sys_health_check::HealthCheck;
 
     #[test]
     fn test_check_cpu_load_on_valid_service() {
