@@ -1,4 +1,5 @@
 use std::fs;
+use std::str::FromStr;
 use std::{num::ParseIntError, process::Command};
 
 pub struct cmdHealCheck;
@@ -78,5 +79,30 @@ impl cmdHealCheck {
         println!("{}: memory: {}", service, total_memory_kb);
 
         Ok(total_memory_kb)
+    }
+
+    pub fn cmd_get_total_used_and_free_disk_space(&self) -> Result<(u64, u64, u64), String> {
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg("df / --output=size,avail | tail -n1")
+            .output()
+            .map_err(|e| format!("Failed to execute command: {}", e))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Failed to execute command: {}", stderr));
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let parts: Vec<&str> = stdout.trim().split_whitespace().collect();
+        if parts.len() != 3 {
+            return Err(format!("Failed to parse command output: {}", stdout));
+        }
+
+        let total_space =
+            u64::from_str(parts[0]).map_err(|e| format!("Failed to parse total space: {}", e))?;
+        let used_space =
+            u64::from_str(parts[1]).map_err(|e| format!("Failed to parse free space: {}", e))?;
+        let free_space = total_space - used_space;
+        Ok((total_space, used_space, free_space))
     }
 }
