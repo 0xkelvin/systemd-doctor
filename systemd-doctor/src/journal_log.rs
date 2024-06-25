@@ -63,3 +63,32 @@ pub fn spawn_log_writer(service: &str, log_file: &str) -> Result<()> {
     });
     Ok(())
 }
+
+pub fn spawn_kernel_log_writer(log_file: &str) -> Result<()> {
+    let log_file_path = log_file.to_string();
+    thread::spawn(move || {
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(&log_file_path)
+            .expect("Failed to open log file");
+        let mut last_fetch_time = SystemTime::now();
+        loop {
+            let since = format!("{:?}", last_fetch_time);
+            match extract_kernel_logs(&since) {
+                Ok(logs) => {
+                    if !logs.trim().is_empty() {
+                        if let Err(e) = writeln!(file, "{}", logs) {
+                            eprintln!("Failed to write logs to file: {}", e);
+                        }
+                        last_fetch_time = SystemTime::now();
+                    }
+                }
+                Err(e) => eprintln!("Failed to fetch logs: {}", e),
+            }
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
+    Ok(())
+}
