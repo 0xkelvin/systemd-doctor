@@ -1,9 +1,9 @@
-use std::process::Command;
 use std::fs::OpenOptions;
+use std::io::Result;
 use std::io::Write;
+use std::process::Command;
 use std::thread;
 use std::time::{Duration, SystemTime};
-use std::io::Result;
 
 pub fn extract_service_logs(service: &str, since: &str) -> Result<String> {
     let output = Command::new("journalctl")
@@ -15,11 +15,24 @@ pub fn extract_service_logs(service: &str, since: &str) -> Result<String> {
         .output()?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, stderr))
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, stderr));
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
+pub fn extract_kernel_logs(since: &str) -> Result<String> {
+    let output = Command::new("journalctl")
+        .arg("-k")
+        .arg("--since")
+        .arg(since)
+        .arg("--no-pager")
+        .output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, stderr));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
 
 pub fn spawn_log_writer(service: &str, log_file: &str) -> Result<()> {
     let log_file_path = log_file.to_string();
@@ -44,11 +57,9 @@ pub fn spawn_log_writer(service: &str, log_file: &str) -> Result<()> {
                     }
                 }
                 Err(e) => eprintln!("Failed to fetch logs: {} {}", e, service),
-
             }
             thread::sleep(Duration::from_secs(1));
         }
     });
     Ok(())
-    
 }
