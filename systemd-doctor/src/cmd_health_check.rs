@@ -105,4 +105,19 @@ impl cmdHealCheck {
         let free_space = total_space - used_space;
         Ok((total_space, used_space, free_space))
     }
+
+    pub fn get_cpu_temperature() -> Result<f64, String> {
+        let path = "/sys/class/thermal/thermal_zone0/temp";
+        // let contents = fs::read_to_string(path)?;
+        match fs::read_to_string(path) {
+            Ok(contents) => {
+                let temp_milidegress: f64 = contents
+                    .trim()
+                    .parse()
+                    .map_err(|e| format!("Failed to parse temperature file: {}", e))?;
+                Ok(temp_milidegress / 1000.0)
+            }
+            Err(e) => Err(format!("Failed to read temperature file: {}", e)),
+        }
+    }
 }
