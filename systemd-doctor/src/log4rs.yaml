@@ -1,0 +1,34 @@
+appenders:
+  service_rolling_file:
+    type: rolling_file
+    path: "log/service.log"
+    policy:
+      type: compound
+      trigger:
+        type: size
+        limit: 200000000 # 200 MB
+      roller:
+        type: fixed_window
+        pattern: "log/service.log.{}"
+        base: 1
+        count: 5
+
+  kernel_rolling_file:
+    type: rolling_file
+    path: "log/kernel.log"
+    policy:
+      type: compound
+      trigger:
+        type: size
+        limit: 200000000 # 200 MB
+      roller:
+        type: fixed_window
+        pattern: "log/kernel.log.{}"
+        base: 1
+        count: 5
+
+root:
+  level: "info"
+  appenders:
+    - service_rolling_file
+    - kernel_rolling_file
