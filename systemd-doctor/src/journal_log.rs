@@ -4,13 +4,16 @@ use std::io::Write;
 use std::process::Command;
 use std::thread;
 use std::time::{Duration, SystemTime};
+use log::{info, error};
+use log4rs;
 
 pub struct LogWriter {
     log_file_path: String,
 }
 
 impl LogWriter {
-    pub fn new(log_file: &str) -> Self {
+    pub fn new(log_file: &str, config_file: &str) -> Self {
+        log4rs::init_file(config_file, Default::default()).unwrap();
         Self {
             log_file_path: log_file.to_string(),
         }
@@ -60,17 +63,13 @@ impl LogWriter {
 
     pub fn spawn_service_log_writer(&self, service: &str) -> Result<()> {
         let service = service.to_string();
-        let log_file_path = self.log_file_path.clone();
         thread::spawn(move || {
-            let log_writer = LogWriter::new(&log_file_path);
             let mut last_fetch_time = SystemTime::now();
             loop {
                 let since = format!("{:?}", last_fetch_time);
                 match LogWriter::extract_service_logs(&service, &since) {
                     Ok(logs) => {
-                        if let Err(e) = log_writer.write_log(&logs) {
-                            eprintln!("Failed to write logs to file: {}", e);
-                        }
+                        info!("{}", logs); 
                         last_fetch_time = SystemTime::now();
                     }
                     Err(e) => eprintln!("Failed to fetch logs: {} {}", e, service),
@@ -83,17 +82,13 @@ impl LogWriter {
     }
 
     pub fn spawn_kernel_log_writer(&self) -> Result<()> {
-        let log_file_path = self.log_file_path.clone();
         thread::spawn(move || {
-            let log_writer = LogWriter::new(&log_file_path);
             let mut last_fetch_time = SystemTime::now();
             loop {
                 let since = format!("{:?}", last_fetch_time);
                 match LogWriter::extract_kernel_logs(&since) {
                     Ok(logs) => {
-                        if let Err(e) = log_writer.write_log(&logs) {
-                            eprintln!("Failed to write logs to file: {}", e);
-                        }
+                        info!("{}", logs);
                         last_fetch_time = SystemTime::now();
                     }
                     Err(e) => eprintln!("Failed to fetch logs: {}", e),
