@@ -7,6 +7,7 @@ use std::process::Command;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+#[derive(Clone)]
 pub struct LogWriter {
     log_file_path: String,
 }
@@ -19,16 +20,8 @@ impl LogWriter {
         }
     }
 
-    fn write_log(&self, logs: &str) -> Result<()> {
-        let mut file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .append(true)
-            .open(&self.log_file_path)?;
-        if !logs.trim().is_empty() {
-            writeln!(file, "{}", logs)?;
-        }
-        Ok(())
+    pub fn log_info(&self, message: &str) {
+        info!("{}", message);
     }
 
     pub fn extract_service_logs(service: &str, since: &str) -> Result<String> {

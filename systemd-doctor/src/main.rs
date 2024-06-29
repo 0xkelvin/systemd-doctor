@@ -2,6 +2,7 @@ use std::thread;
 use std::time::Duration;
 
 mod cmd_health_check;
+mod health_monitor;
 mod journal_log;
 mod sys_health_check;
 
@@ -13,7 +14,7 @@ fn main() {
         let log = journal_log::LogWriter::new("service_test_2.log", "service_test_2");
         let service_name = "service_test_2";
         let cpu_load = cmd_health.cmd_check_cpu_load(service_name, None);
-        let memory_usage = cmd_health.cmd_check_memory_usage_kb(service_name, 0);
+        let memory_usage = cmd_health.cmd_check_memory_usage_kb(service_name, None);
         let _ = log.spawn_service_log_writer("service_test_2");
         // let _start_journal = journal_log::spawn_log_writer(service_name, "service_test_2.log");
 

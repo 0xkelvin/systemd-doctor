@@ -1,7 +1,7 @@
 use std::fs;
 use std::str::FromStr;
 use std::{num::ParseIntError, process::Command};
-
+#[derive(Clone)]
 pub struct cmdHealCheck;
 
 impl cmdHealCheck {
@@ -38,7 +38,7 @@ impl cmdHealCheck {
     pub fn cmd_check_memory_usage_kb(
         &self,
         service: &str,
-        _threshold_kb: u64,
+        _threshold_kb: Option<u64>,
     ) -> Result<u64, String> {
         let mut total_memory_kb: u64 = 0;
 
@@ -106,7 +106,7 @@ impl cmdHealCheck {
         Ok((total_space, used_space, free_space))
     }
 
-    pub fn get_cpu_temperature() -> Result<f64, String> {
+    pub fn get_cpu_temperature(&self) -> Result<f64, String> {
         let path = "/sys/class/thermal/thermal_zone0/temp";
         // let contents = fs::read_to_string(path)?;
         match fs::read_to_string(path) {
