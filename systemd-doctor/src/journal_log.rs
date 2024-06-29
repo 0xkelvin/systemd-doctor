@@ -1,11 +1,11 @@
+use log::{error, info};
+use log4rs;
 use std::fs::OpenOptions;
 use std::io::Result;
 use std::io::Write;
 use std::process::Command;
 use std::thread;
 use std::time::{Duration, SystemTime};
-use log::{info, error};
-use log4rs;
 
 pub struct LogWriter {
     log_file_path: String,
@@ -69,7 +69,7 @@ impl LogWriter {
                 let since = format!("{:?}", last_fetch_time);
                 match LogWriter::extract_service_logs(&service, &since) {
                     Ok(logs) => {
-                        info!("{}", logs); 
+                        info!("{}", logs);
                         last_fetch_time = SystemTime::now();
                     }
                     Err(e) => eprintln!("Failed to fetch logs: {} {}", e, service),

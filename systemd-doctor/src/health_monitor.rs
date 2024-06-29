@@ -43,5 +43,22 @@ impl HealthMonitor {
 
             });
         }
+        // Spawn a thread to monitor the kernel logs
+        let kernel_log_writer = self.log_writer.clone();
+        thread::spawn(|| {
+            let mut last_fetch_time = SystemTiime::now();
+            loop {
+                since = format!{"{:?}", last_fetch_time};
+                match LogWriter::extract_kernel_logs(&since){
+                    Ok(logs) => {
+                        if let Err(e) = kernel_log_writer.write_log(&logs) {
+                            eprintln!("Failed to write logs: {}", e);
+                        }
+                    }
+                    Err(e) => eprintln!("Failed to fetch logs: {}", e),
+                }
+                thread::sleep(self.check_interval);
+            }
+        });
     }
 }
