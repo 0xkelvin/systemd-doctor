@@ -1,4 +1,4 @@
-use std::{os::unix::process, thread, time::Duration};
+use std::{thread, time::Duration};
 use sysinfo::System;
 
 pub struct HealthCheck {

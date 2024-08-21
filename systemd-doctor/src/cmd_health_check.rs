@@ -1,18 +1,8 @@
+use std::fs;
 use std::io;
 use std::str::FromStr;
+use std::{fs::File, io::BufRead};
 use std::{num::ParseIntError, process::Command};
-#[derive(Clone)]
-pub struct cmdHealCheck;
-use chrono::Local;
-use csv::Writer;
-use std::fs;
-use std::{
-    fs::File,
-    fs::{metadata, rename, OpenOptions},
-    io::BufRead,
-    io::Write,
-    thread, time,
-};
 
 pub struct MemInfo {
     pub total_memory: u64,
@@ -22,7 +12,9 @@ pub struct MemInfo {
     pub cached_memory: u64,
 }
 
-impl cmdHealCheck {
+pub struct CmdHealCheck;
+
+impl CmdHealCheck {
     pub fn new() -> Self {
         Self {}
     }

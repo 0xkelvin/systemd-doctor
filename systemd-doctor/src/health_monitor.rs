@@ -1,56 +1,67 @@
-use crate::cmd_health_check::cmdHealCheck;
-use crate::journal_log::LogWriter;
-use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use chrono::Local;
+
+use crate::cmd_health_check::CmdHealCheck;
+use crate::log::LogWriter;
+use std::fs::metadata;
+use std::io;
+use std::time::Duration;
 
 pub struct HealthMonitor {
-    services: Vec<String>,
+    services: Option<Vec<String>>,
     check_interval: Duration,
     log_writer: LogWriter,
-    cmd_checker: cmdHealCheck,
+    cmd_checker: CmdHealCheck,
 }
 
 impl HealthMonitor {
     pub fn new(
-        service: Vec<String>,
+        services: Option<Vec<String>>,
         check_interval: Duration,
-        log_file: &str,
-        config_file: &str,
-    ) -> Self {
-        let log_writer = LogWriter::new(log_file, config_file);
-        let cmd_checker = cmdHealCheck::new();
+        log_file: Option<&str>,
+    ) -> Result<Self, io::Error> {
+        let log_writer = LogWriter::new(log_file)?;
+        let cmd_checker = CmdHealCheck::new();
 
-        Self {
-            services: service,
+        Ok(Self {
+            services,
             check_interval,
             log_writer,
             cmd_checker,
-        }
+        })
     }
 
-    pub fn start(&self) {
-        for service in &self.services {
-            let service_name = service.clone();
-            let log_writer = self.log_writer.clone();
-            let cmd_checker = self.cmd_checker.clone();
-            let check_interval = self.check_interval;
-            thread::spawn(move || loop {
-                let cpu_load = cmd_checker
-                    .cmd_check_cpu_load(&service_name, None)
-                    .unwrap_or(0.0);
-                let memory_usage = cmd_checker
-                    .cmd_check_memory_usage_kb(&service_name, None)
-                    .unwrap_or(0);
-                let cpu_temp = cmd_checker.get_cpu_temperature().unwrap_or(0.0);
-                let log_message = format!(
-                    "{}: CPU Load: {}%, Memory Usage: {} KB, CPU Team: {:.2}C",
-                    service_name, cpu_load, memory_usage, cpu_temp
-                );
-
-                log_writer.log_info(&log_message);
-                thread::sleep(check_interval);
-            });
+    pub fn start_monitor_memory(&mut self) -> Result<(), io::Error> {
+        if metadata(self.log_writer.get_log_file_path())?.len() == 0 {
+            let header = [
+                "Timestamp",
+                "Total Memory (MB)",
+                "Free Memory (MB)",
+                "Available Memory (MB)",
+                "Buffers Memory (MB)",
+                "Cached Memory (MB)",
+            ];
+            self.log_writer.write_record(&header)?;
         }
+
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        match self.cmd_checker.parse_meminfo() {
+            Ok(meminfo) => {
+                let record = [
+                    timestamp.as_str(),
+                    &meminfo.total_memory.to_string(),
+                    &meminfo.free_memory.to_string(),
+                    &meminfo.available_memory.to_string(),
+                    &meminfo.buffers_memory.to_string(),
+                    &meminfo.cached_memory.to_string(),
+                ];
+                self.log_writer.write_record(&record)?;
+            }
+            Err(e) => {
+                eprintln!("Failed to retrieve memory information: {}", e);
+            }
+        }
+
+        Ok(())
     }
 
     pub fn enable_journal_service_log(&self, service_name: &str) -> Result<(), String> {
