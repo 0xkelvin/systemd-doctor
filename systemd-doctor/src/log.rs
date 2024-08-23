@@ -1,23 +1,53 @@
-use log::{error, info};
-use log4rs;
+use csv::Writer;
+use log::info;
+use std::env;
 use std::fs::OpenOptions;
+use std::io;
 use std::io::Result;
-use std::io::Write;
+use std::path::PathBuf;
 use std::process::Command;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-#[derive(Clone)]
 pub struct LogWriter {
-    log_file_path: String,
+    log_file_path: PathBuf,
+    writer: Writer<std::fs::File>,
 }
 
 impl LogWriter {
-    pub fn new(log_file: &str, config_file: &str) -> Self {
-        log4rs::init_file(config_file, Default::default()).unwrap();
-        Self {
-            log_file_path: log_file.to_string(),
-        }
+    pub fn new(log_file: Option<&str>) -> io::Result<Self> {
+        let log_file_path = match log_file {
+            Some(path) => PathBuf::from(path),
+            None => {
+                let mut current_dir = env::current_dir().expect("Failed to get currect directory");
+                current_dir.push("DrViet_health_log.csv");
+                current_dir
+            }
+        };
+
+        // Open or create the csv file
+        let file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(&log_file_path)?;
+        let writer = Writer::from_writer(file);
+
+        Ok(Self {
+            log_file_path,
+            writer,
+        })
+    }
+
+    pub fn get_log_file_path(&self) -> &PathBuf {
+        &self.log_file_path
+    }
+
+    //methods to write to the csv file
+    pub fn write_record(&mut self, record: &[&str]) -> io::Result<()> {
+        self.writer.write_record(record)?;
+        let _ = self.writer.flush(); // ensure data is written to the file
+        Ok(())
     }
 
     pub fn log_info(&self, message: &str) {

@@ -1,12 +1,68 @@
 use std::fs;
+use std::io;
 use std::str::FromStr;
+use std::{fs::File, io::BufRead};
 use std::{num::ParseIntError, process::Command};
-#[derive(Clone)]
-pub struct cmdHealCheck;
 
-impl cmdHealCheck {
+pub struct MemInfo {
+    pub total_memory: u64,
+    pub free_memory: u64,
+    pub available_memory: u64,
+    pub buffers_memory: u64,
+    pub cached_memory: u64,
+}
+
+pub struct CmdHealCheck;
+
+impl CmdHealCheck {
     pub fn new() -> Self {
         Self {}
+    }
+
+    fn parse_meminfo_value(line: &str) -> u64 {
+        let value_in_kb = line
+            .split_whitespace()
+            .nth(1)
+            .unwrap_or("0")
+            .parse::<u64>()
+            .unwrap_or(0);
+
+        value_in_kb / 1024
+    }
+
+    pub fn parse_meminfo(&self) -> io::Result<MemInfo> {
+        let file = File::open("/proc/meminfo")?;
+        let reader = io::BufReader::new(file);
+
+        let mut total_memory = 0;
+        let mut free_memory = 0;
+        let mut available_memory = 0;
+        let mut buffers_memory = 0;
+        let mut cached_memory = 0;
+
+        for line in reader.lines() {
+            let line = line?;
+
+            if line.starts_with("MemTotal:") {
+                total_memory = Self::parse_meminfo_value(&line);
+            } else if line.starts_with("MemFree:") {
+                free_memory = Self::parse_meminfo_value(&line);
+            } else if line.starts_with("MemAvailable:") {
+                available_memory = Self::parse_meminfo_value(&line);
+            } else if line.starts_with("Buffers:") {
+                buffers_memory = Self::parse_meminfo_value(&line);
+            } else if line.starts_with("Cached:") {
+                cached_memory = Self::parse_meminfo_value(&line);
+            }
+        }
+
+        Ok(MemInfo {
+            total_memory,
+            free_memory,
+            available_memory,
+            buffers_memory,
+            cached_memory,
+        })
     }
 
     /*
