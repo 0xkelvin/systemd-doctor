@@ -5,23 +5,38 @@
 # cpu = 80.0
 # memory = 70.0
 # disk = 90
+# status = 'active'
 
 # [thresholds.mqtt-client]
 # cpu = 60.0
 # memory = 50.0
 # disk = 85
+# status = 'active'
 
 # [thresholds.can-parser]
 # cpu = 75.0
 # memory = 65.0
 # disk = 88
+# status = 'active'
 
 # [thresholds.logging]
 # cpu = 70.0
 # memory = 60.0
 # disk = 85
+# status = 'inactive'
+
+#[healthcheck-cpu_load]
+#global_cpuload
+#services_cpuloads
+
+#[healthcheck-memory]
+#total_memory
+#free_memory
+#available_memory
+#buffers_memory
+#cached_memory
 
 # [global_thresholds]
 # cpu_temperature = 80.0
 # board_temperature = 70.0
-# network_bandwidth = 1000.0 
+# network_bandwidth = 1000.0
