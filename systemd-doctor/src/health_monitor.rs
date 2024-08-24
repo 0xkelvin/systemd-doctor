@@ -1,6 +1,7 @@
 use chrono::Local;
 
 use crate::cmd_health_check::CmdHealCheck;
+use crate::config::ConfigParser;
 use crate::log::LogWriter;
 use std::fs::metadata;
 use std::io;
@@ -15,15 +16,17 @@ pub struct HealthMonitor {
 
 impl HealthMonitor {
     pub fn new(
-        services: Option<Vec<String>>,
+        config_path: &str,
         check_interval: Duration,
         log_file: Option<&str>,
     ) -> Result<Self, io::Error> {
         let log_writer = LogWriter::new(log_file)?;
         let cmd_checker = CmdHealCheck::new();
+        let config = ConfigParser::new(config_path);
 
+        let tracking_services = config.get_config_services().clone();
         Ok(Self {
-            services,
+            services: tracking_services,
             check_interval,
             log_writer,
             cmd_checker,
