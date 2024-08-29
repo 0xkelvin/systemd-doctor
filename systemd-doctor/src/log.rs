@@ -15,12 +15,19 @@ pub struct LogWriter {
 }
 
 impl LogWriter {
-    pub fn new(log_file: Option<&str>) -> io::Result<Self> {
+    pub fn new() -> io::Result<(Self, Self)> {
+        let memory_log_writer = LogWriter::create_log_writer(None, "DrViet_memory.csv")?;
+        let cpu_log_writer = LogWriter::create_log_writer(None, "DrViet_cpu.csv")?;
+
+        Ok((memory_log_writer, cpu_log_writer))
+    }
+
+    pub fn create_log_writer(log_file: Option<&str>, default_name: &str) -> io::Result<Self> {
         let log_file_path = match log_file {
             Some(path) => PathBuf::from(path),
             None => {
                 let mut current_dir = env::current_dir().expect("Failed to get currect directory");
-                current_dir.push("DrViet_health_log.csv");
+                current_dir.push(default_name);
                 current_dir
             }
         };

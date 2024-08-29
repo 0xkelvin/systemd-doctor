@@ -14,6 +14,7 @@ pub struct Services {
     pub list: Option<Vec<String>>,
 }
 
+#[derive(Clone, Debug)]
 pub struct ConfigParser {
     pub config: Config,
 }
