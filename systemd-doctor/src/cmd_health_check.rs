@@ -91,6 +91,13 @@ impl CmdHealCheck {
         Ok(load)
     }
 
+    pub fn cmd_check_memory_usage_mb(&self, service: &str) -> Result<u64, String> {
+        match self.cmd_check_memory_usage_kb(service, None) {
+            Ok(total_mem_kb) => Ok(total_mem_kb / 1024),
+            Err(e) => Err(format!("Failed to read memory usage of service: {}", e)),
+        }
+    }
+
     pub fn cmd_check_memory_usage_kb(
         &self,
         service: &str,
@@ -132,7 +139,7 @@ impl CmdHealCheck {
 
             total_memory_kb += mem_pages * 4; // 4 KB per page
         }
-        println!("{}: memory: {}", service, total_memory_kb);
+        // println!("{}: memory: {}", service, total_memory_kb);
 
         Ok(total_memory_kb)
     }

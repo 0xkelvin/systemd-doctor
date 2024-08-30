@@ -25,11 +25,7 @@ impl HealthMonitor {
         let (memory_log, cpu_log) = LogWriter::new()?;
         let cmd_checker = CmdHealCheck::new();
         let config = ConfigParser::new(config_path);
-
-        println!("{:#?}", config);
-
         let tracking_services = config.get_config_services().clone();
-        println!("{:#?}", tracking_services);
         Ok(Self {
             services: tracking_services,
             check_interval,
@@ -75,7 +71,7 @@ impl HealthMonitor {
 
                 if let Some(services) = &self.services {
                     for service in services {
-                        match self.cmd_checker.cmd_check_memory_usage_kb(service, None) {
+                        match self.cmd_checker.cmd_check_memory_usage_mb(service) {
                             Ok(memory_usage) => record.push(memory_usage.to_string()),
                             Err(e) => {
                                 eprintln!("Failed to get memory usage for {}: {}", service, e);
@@ -90,6 +86,40 @@ impl HealthMonitor {
             Err(e) => {
                 eprintln!("Failed to retrieve memory information: {}", e);
             }
+        }
+
+        Ok(())
+    }
+
+    pub fn start_monitor_cpuload(&mut self) -> Result<(), io::Error> {
+        if metadata(self.cpu_log.get_log_file_path())?.len() == 0 {
+            let mut header = vec!["Timestamp".to_string()];
+
+            if let Some(services) = &self.services {
+                for service in services {
+                    header.push(format!("{}(MB)", service));
+                }
+            }
+
+            let header_refs: Vec<&str> = header.iter().map(String::as_str).collect();
+            self.cpu_log.write_record(&header_refs)?;
+        }
+
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let mut record = vec![timestamp];
+        if let Some(services) = &self.services {
+            for service in services {
+                match self.cmd_checker.cmd_check_cpu_load(service, None) {
+                    Ok(cpu_load) => record.push(cpu_load.to_string()),
+                    Err(e) => {
+                        eprintln!("Failed to get cpu usage for {}: {}", service, e);
+                        record.push("N/A".to_string()); // Or use a default value
+                    }
+                }
+            }
+
+            let record_refs: Vec<&str> = record.iter().map(String::as_str).collect();
+            self.cpu_log.write_record(&record_refs)?;
         }
 
         Ok(())
