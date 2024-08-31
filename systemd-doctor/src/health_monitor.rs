@@ -6,6 +6,8 @@ use crate::log::LogWriter;
 use std::fmt::format;
 use std::fs::metadata;
 use std::io;
+use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Duration;
 
 pub struct HealthMonitor {
@@ -33,6 +35,21 @@ impl HealthMonitor {
             cpu_log,
             cmd_checker,
         })
+    }
+
+    pub fn start_tracking(monitor: Arc<Mutex<Self>>, interval: Duration) {
+        thread::spawn(move || {
+            loop {
+                let mut monitor = monitor.lock().unwrap(); // Lock the mutex to get mutable access
+                if let Err(e) = monitor.start_monitor_memory() {
+                    eprintln!("Failed to monitor memory: {}", e);
+                }
+                if let Err(e) = monitor.start_monitor_cpuload() {
+                    eprintln!("Failed to monitor CPU: {}", e);
+                }
+                thread::sleep(interval);
+            }
+        });
     }
 
     pub fn start_monitor_memory(&mut self) -> Result<(), io::Error> {

@@ -7,15 +7,19 @@ mod health_monitor;
 mod log;
 mod sys_health_check;
 use crate::health_monitor::HealthMonitor;
+use std::sync::{Arc, Mutex};
 
 fn main() -> io::Result<()> {
     println!("Starting health check...");
 
-    let mut health_track = HealthMonitor::new("./config.toml", Duration::new(5, 0), None)
-        .expect("Failed to create heal monitoring");
+    let health_monitor = Arc::new(Mutex::new(
+        HealthMonitor::new("config.toml", Duration::from_secs(10), None).unwrap(),
+    ));
+
+    HealthMonitor::start_tracking(health_monitor.clone(), Duration::from_secs(10));
 
     loop {
-        let _ = health_track.start_monitor_memory();
+        println!("Viet is working");
         thread::sleep(Duration::from_secs(10));
     }
 }
