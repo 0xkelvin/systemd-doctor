@@ -88,7 +88,7 @@ impl HealthMonitor {
 
                 if let Some(services) = &self.services {
                     for service in services {
-                        match self.cmd_checker.cmd_check_memory_usage_mb(service) {
+                        match self.cmd_checker.cmd_check_memory_usage_mb(service, None) {
                             Ok(memory_usage) => record.push(memory_usage.to_string()),
                             Err(e) => {
                                 eprintln!("Failed to get memory usage for {}: {}", service, e);

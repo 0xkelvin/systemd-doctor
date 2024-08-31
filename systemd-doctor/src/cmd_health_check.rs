@@ -91,25 +91,18 @@ impl CmdHealCheck {
         Ok(load)
     }
 
-    pub fn cmd_check_memory_usage_mb(&self, service: &str) -> Result<u64, String> {
-        match self.cmd_check_memory_usage_kb(service, None) {
-            Ok(total_mem_kb) => Ok(total_mem_kb / 1024),
-            Err(e) => Err(format!("Failed to read memory usage of service: {}", e)),
-        }
-    }
-
-    pub fn cmd_check_memory_usage_kb(
+    // using the VmRSS field from the /proc/[pid]/status file
+    pub fn cmd_check_memory_usage_mb(
         &self,
         service: &str,
-        _threshold_kb: Option<u64>,
-    ) -> Result<u64, String> {
+        _threshold_mb: Option<u64>,
+    ) -> Result<f64, String> {
         let mut total_memory_kb: u64 = 0;
 
         let output = Command::new("pgrep")
             .arg(service)
             .output()
             .map_err(|e| format!("Failed to execute command: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("Failed to execute command: {}", stderr));
@@ -126,22 +119,25 @@ impl CmdHealCheck {
         }
 
         for pid in pids {
-            let statm_path = format!("/proc/{}/statm", pid);
-            let statm = fs::read_to_string(statm_path)
+            let status_path = format!("/proc/{}/status", pid);
+            let status = fs::read_to_string(&status_path)
                 .map_err(|e| format!("Failed to read file: {}", e))?;
-
-            let mem_pages: u64 = statm
-                .split_whitespace()
-                .next()
-                .ok_or_else(|| format!("Failed to parse statm file for PID {}", pid))?
-                .parse()
-                .map_err(|e| format!("Failed to parse memory usage for PID {}: {}", pid, e))?;
-
-            total_memory_kb += mem_pages * 4; // 4 KB per page
+            for line in status.lines() {
+                if line.starts_with("VmRSS:") {
+                    let rss_kb: u64 = line
+                        .split_whitespace()
+                        .nth(1)
+                        .ok_or_else(|| format!("Failed to parse VmRSS for PID {}", pid))?
+                        .parse()
+                        .map_err(|e| {
+                            format!("Failed to parse memory usage for PID {}: {}", pid, e)
+                        })?;
+                    total_memory_kb += rss_kb;
+                }
+            }
         }
-        // println!("{}: memory: {}", service, total_memory_kb);
 
-        Ok(total_memory_kb)
+        Ok(total_memory_kb as f64 / 1024.0)
     }
 
     pub fn cmd_get_total_used_and_free_disk_space(&self) -> Result<(u64, u64, u64), String> {
