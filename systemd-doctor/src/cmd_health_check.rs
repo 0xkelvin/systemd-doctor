@@ -137,7 +137,10 @@ impl CmdHealCheck {
             }
         }
 
-        Ok(total_memory_kb as f64 / 1024.0)
+        // Convert the total memory from KB to MB and truncate to 1 decimal place
+        let total_memory_mb = (total_memory_kb as f64 / 1024.0 * 10.0).trunc() / 10.0;
+
+        Ok(total_memory_mb)
     }
 
     pub fn cmd_get_total_used_and_free_disk_space(&self) -> Result<(u64, u64, u64), String> {
