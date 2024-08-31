@@ -1,37 +1,23 @@
-use std::fs;
+use serde::Deserialize;
 use std::collections::HashMap;
+use std::fs;
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     pub services: Services,
-    pub thresholds: HashMap<String, ServiceThreshold>,
-    pub global_thresholds: GlobalThresholds,
+    // pub thresholds: HashMap<String, ServiceThreshold>,
+    // pub global_thresholds: GlobalThresholds,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Services {
-    pub list: Vec<String>,
+    pub list: Option<Vec<String>>,
 }
 
-
-#[derive(Deserialize, Debug)]
-pub struct ServiceThreshold {
-    pub cpu: Option<f32>,
-    pub memory: Option<f32>,
-    pub disk: Option<f32>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct GlobalThresholds {
-    pub cpu: Option<f32>,
-    pub memory: Option<f32>,
-    pub disk: Option<f32>,
-}
-
+#[derive(Clone, Debug)]
 pub struct ConfigParser {
-    config: Config,
+    pub config: Config,
 }
-
 
 impl ConfigParser {
     pub fn new(config_path: &str) -> Self {
@@ -42,5 +28,9 @@ impl ConfigParser {
 
     pub fn get_config(&self) -> &Config {
         &self.config
+    }
+
+    pub fn get_config_services(&self) -> &Option<Vec<String>> {
+        &self.config.services.list
     }
 }
