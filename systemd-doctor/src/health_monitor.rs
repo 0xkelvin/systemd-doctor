@@ -114,7 +114,7 @@ impl HealthMonitor {
 
             if let Some(services) = &self.services {
                 for service in services {
-                    header.push(format!("{}(MB)", service));
+                    header.push(format!("{}(%)", service));
                 }
             }
 
