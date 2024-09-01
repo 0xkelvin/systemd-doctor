@@ -1,5 +1,7 @@
+use std::fmt::format;
 use std::fs;
 use std::io;
+use std::io::stderr;
 use std::str::FromStr;
 use std::{fs::File, io::BufRead};
 use std::{num::ParseIntError, process::Command};
@@ -77,18 +79,26 @@ impl CmdHealCheck {
         let output = Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "ps -C {} -o %cpu= | awk '{{s+=$1}} END {{print s}}'",
+                "top -b -n 1 | grep -w '{}' | awk '{{sum += $9}} END {{print sum}}'",
                 service
             ))
             .output()
-            .expect("Failed to execute command");
+            .map_err(|e| format!("Failed to execute command: {}", e))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Failed to execute command: {}", stderr));
+        }
 
         let load: f32 = String::from_utf8_lossy(&output.stdout)
             .trim()
             .parse()
             .unwrap_or(0.0);
-        println!("{}: cpu_load: {}", service, load);
-        Ok(load)
+
+        // Truncate the CPU load to one decimal place
+        let truncated_load = (load * 10.0).trunc() / 10.0;
+        println!("{}: cpu_load: {}", service, truncated_load);
+
+        Ok(truncated_load)
     }
 
     // using the VmRSS field from the /proc/[pid]/status file
