@@ -3,6 +3,8 @@ use std::fs;
 use std::io;
 use std::io::stderr;
 use std::str::FromStr;
+use std::thread::sleep;
+use std::time::Duration;
 use std::{fs::File, io::BufRead};
 use std::{num::ParseIntError, process::Command};
 
@@ -76,29 +78,114 @@ impl CmdHealCheck {
         service: &str,
         _threshold: Option<f32>,
     ) -> Result<f32, String> {
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "top -b -n 1 | grep -w '{}' | awk '{{sum += $9}} END {{print sum}}'",
-                service
-            ))
+        let pids = self.get_service_pids(service)?;
+
+        if pids.is_empty() {
+            return Err(format!("Service {} not found", service));
+        }
+
+        let mut total_cpu_usage = 0.0;
+
+        // First snapshot
+        let mut first_stat = vec![];
+        for pid in &pids {
+            first_stat.push(self.read_stat(pid)?);
+        }
+        let first_uptime = self.read_uptime()?;
+
+        // Sleep for a short duration to calculate the CPU load over time
+        sleep(Duration::from_secs(1));
+
+        // Second snapshot
+        let mut second_stat = vec![];
+        for pid in &pids {
+            second_stat.push(self.read_stat(pid)?);
+        }
+        let second_uptime = self.read_uptime()?;
+
+        for i in 0..pids.len() {
+            let cpu_usage = self.calculate_cpu_usage(
+                &first_stat[i],
+                &second_stat[i],
+                first_uptime,
+                second_uptime,
+            );
+            total_cpu_usage += cpu_usage;
+        }
+
+        // Truncate the CPU load to one decimal place
+        let truncated_load = (total_cpu_usage * 10.0).trunc() / 10.0;
+
+        Ok(truncated_load)
+    }
+
+    fn get_service_pids(&self, service: &str) -> Result<Vec<u32>, String> {
+        let output = Command::new("pgrep")
+            .arg(service)
             .output()
             .map_err(|e| format!("Failed to execute command: {}", e))?;
+
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("Failed to execute command: {}", stderr));
         }
 
-        let load: f32 = String::from_utf8_lossy(&output.stdout)
+        let pids = String::from_utf8_lossy(&output.stdout)
             .trim()
+            .split_whitespace()
+            .map(|s| s.parse::<u32>().unwrap_or(0))
+            .collect::<Vec<u32>>();
+
+        Ok(pids)
+    }
+
+    fn read_stat(&self, pid: &u32) -> Result<(u64, u64), String> {
+        let stat_path = format!("/proc/{}/stat", pid);
+        let stat = fs::read_to_string(stat_path)
+            .map_err(|e| format!("Failed to read stat file for PID {}: {}", pid, e))?;
+        let stat_values: Vec<&str> = stat.split_whitespace().collect();
+
+        let utime: u64 = stat_values[13]
             .parse()
-            .unwrap_or(0.0);
+            .map_err(|e| format!("Failed to parse utime: {}", e))?;
+        let stime: u64 = stat_values[14]
+            .parse()
+            .map_err(|e| format!("Failed to parse stime: {}", e))?;
 
-        // Truncate the CPU load to one decimal place
-        let truncated_load = (load * 10.0).trunc() / 10.0;
-        println!("{}: cpu_load: {}", service, truncated_load);
+        Ok((utime, stime))
+    }
 
-        Ok(truncated_load)
+    fn read_uptime(&self) -> Result<f64, String> {
+        let uptime_str = fs::read_to_string("/proc/uptime")
+            .map_err(|e| format!("Failed to read uptime: {}", e))?;
+        let uptime: f64 = uptime_str
+            .split_whitespace()
+            .next()
+            .unwrap_or("0")
+            .parse()
+            .map_err(|e| format!("Failed to parse uptime: {}", e))?;
+
+        Ok(uptime)
+    }
+
+    fn calculate_cpu_usage(
+        &self,
+        first_stat: &(u64, u64),
+        second_stat: &(u64, u64),
+        first_uptime: f64,
+        second_uptime: f64,
+    ) -> f32 {
+        let total_time_first = first_stat.0 + first_stat.1;
+        let total_time_second = second_stat.0 + second_stat.1;
+        let total_time_diff = total_time_second as f64 - total_time_first as f64;
+
+        let elapsed_time = second_uptime - first_uptime;
+
+        if elapsed_time > 0.0 {
+            (total_time_diff / (elapsed_time * 100.0)) as f32
+        } else {
+            0.0
+        }
     }
 
     // using the VmRSS field from the /proc/[pid]/status file
