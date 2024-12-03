@@ -1,3 +1,8 @@
+![image](https://github.com/user-attachments/assets/a33429e9-7961-419f-92c9-511f383cb273)
+
+
+
+
 # Overview
 _**Systemd-doctor**_ is a health monitoring service designed to track and manage the health of various services on an embedded Linux device. 
 
